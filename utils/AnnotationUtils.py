@@ -143,7 +143,7 @@ def write_dad_masks(vott_filepath, mask_out_path, tag_names=None,
     
     return tag_names, actual_class_mapping, used_tags
 
-def write_publaynet_masks(json_path, is_val_set=False):
+def write_publaynet_masks(json_path, is_val_set=False, draw_border=True):
     with open(json_path, 'r') as fp:
         trainsamples = json.load(fp)
 
@@ -188,13 +188,14 @@ def write_publaynet_masks(json_path, is_val_set=False):
             seg_mask[x1:x2, y1:y2] = int(ann['category_id'])
             used_tags[filename].add(int(ann['category_id']))
             #the object's border pixels are updated to 255 (unknown) to create contrast and aid with learning
-            try:
-                seg_mask[x1, y1:y2] = 255
-                seg_mask[x2, y1:y2] = 255
-                seg_mask[x1:x2, y1] = 255
-                seg_mask[x1:x2, y2] = 255
-            except Exception as e:
-                print("Invalid box sizes for img {}, skipping border".format(images[img_id]['file_name']))
+            if draw_border:
+                try:
+                    seg_mask[x1, y1:y2] = 255
+                    seg_mask[x2, y1:y2] = 255
+                    seg_mask[x1:x2, y1] = 255
+                    seg_mask[x1:x2, y2] = 255
+                except Exception as e:
+                    print("Invalid box sizes for img {}, skipping border".format(images[img_id]['file_name']))
             area_and_boxes.append((int(ann['category_id']), y1, x1, current_bbox[3], current_bbox[2]))  # we transpose these
 
         with open(filename.replace("png", "txt"), 'w') as box_f:

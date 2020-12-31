@@ -47,6 +47,7 @@ TAG_NAMES = {'highlights',
              'article_history',
              'acknowledgment',
              'background'}
+
 TAG_MAPPING = {'abbreviation': 'background',
                   'acknowledgment': 'background',
                   'additional_file': 'background',
@@ -69,14 +70,13 @@ TAG_MAPPING = {'abbreviation': 'background',
                   'MSC': 'background',
                   'highlights': 'background',
                   'subheading': 'section_heading'}
+
 SAVED_PKL_FILE = 'saved_dad_paths.pkl'
 
-SEED = 45
-BATCH_SIZE = 8
 BUFFER_SIZE = 500
 MASK_DIR = "masks"
 
-def write_masks(dataset_dir):
+def write_masks(dataset_dir, border_buffer=6):
     masks_dir = os.path.join(dataset_dir, MASK_DIR)
     anno_dir = os.path.join(dataset_dir, 'annotations')
     if os.path.exists(SAVED_PKL_FILE):
@@ -89,14 +89,14 @@ def write_masks(dataset_dir):
                                                           masks_dir, 
                                                           tag_names=TAG_NAMES,
                                                           tag_mapping=TAG_MAPPING,
-                                                          buffer_size=6,
+                                                          buffer_size=border_buffer,
                                                           force=True)
             all_used_tags.update(used_tags)
         pickle.dump((all_used_tags, class_mapping), open(SAVED_PKL_FILE, 'wb'))
 
     return all_used_tags, class_mapping
  
-def build_dad_dataset(dataset_dir, img_size, debug=False):
+def build_dad_dataset(dataset_dir, img_size, batch_size, seed, debug=False):
     all_used_tags, class_mapping = write_masks(dataset_dir)
 
     # Filter out any pages that have no classes (this is helpful when messing around with active classes)
@@ -106,7 +106,7 @@ def build_dad_dataset(dataset_dir, img_size, debug=False):
             filtered_used_tags[path] = used_tags
     
     # Split the paths with stratified sampling, to mainting class distribution
-    train_paths, test_paths = dlu.stratify_train_test_split(filtered_used_tags, 0.10, seed=SEED, debug=debug)
+    train_paths, test_paths = dlu.stratify_train_test_split(filtered_used_tags, 0.10, seed=seed, debug=debug)
     
     #%% - further split the test set into test and validation sets
     test_used_tags = {}
@@ -114,7 +114,7 @@ def build_dad_dataset(dataset_dir, img_size, debug=False):
         if path in test_paths:
             test_used_tags[path] = used_tags
 
-    test_paths, valid_paths = dlu.stratify_train_test_split(test_used_tags, 0.50, seed=SEED, debug=debug)
+    test_paths, valid_paths = dlu.stratify_train_test_split(test_used_tags, 0.50, seed=seed, debug=debug)
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_paths)
     train_dataset = train_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -126,17 +126,17 @@ def build_dad_dataset(dataset_dir, img_size, debug=False):
     test_dataset = test_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     train = train_dataset.map(lambda x: dlu.load_image_train(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    train = train.shuffle(buffer_size=BUFFER_SIZE, seed=SEED, reshuffle_each_iteration=True)
-    train = train.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    train = train.shuffle(buffer_size=BUFFER_SIZE, seed=seed, reshuffle_each_iteration=True)
+    train = train.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     train = train.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     valid = valid_dataset.map(lambda x: dlu.load_image_test(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    valid = valid.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    valid = valid.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     valid = valid.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     test = test_dataset.map(lambda x: dlu.load_image_test(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    test = test.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    test = test.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     test = test.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-    return train, valid, test
+    return train, valid, test, class_mapping
  

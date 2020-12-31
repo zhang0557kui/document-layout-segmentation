@@ -16,8 +16,6 @@ TAG_MAPPING = {}
 SAVED_TRAIN_PKL_FILE = 'saved_publaynet_train_paths.pkl'
 SAVED_VAL_PKL_FILE = 'saved_publaynet_val_paths.pkl'
 
-SEED = 45
-BATCH_SIZE = 8
 BUFFER_SIZE = 500
 
 def write_masks(dataset_dir, is_val_set=False):
@@ -33,7 +31,7 @@ def write_masks(dataset_dir, is_val_set=False):
 
     return used_tags, {1: 'text', 2: 'title', 3: 'list', 4: 'table', 5: 'figure', 0: 'background'}
  
-def build_publaynet_dataset(dataset_dir, img_size, debug=False):
+def build_publaynet_dataset(dataset_dir, img_size, batch_size, seed, debug=False):
     train_dir = os.path.join(dataset_dir, 'train')
     val_dir = os.path.join(dataset_dir, 'val')
 
@@ -44,7 +42,7 @@ def build_publaynet_dataset(dataset_dir, img_size, debug=False):
 
     valid_paths = [os.path.join(val_dir, x) for x in os.listdir(val_dir) if x.endswith('.jpg')]
 
-    valid_paths, test_paths = dlu.stratify_train_test_split(used_val_tags, 0.5, seed=SEED)
+    valid_paths, test_paths = dlu.stratify_train_test_split(used_val_tags, 0.5, seed=seed)
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_paths)
     train_dataset = train_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -56,16 +54,16 @@ def build_publaynet_dataset(dataset_dir, img_size, debug=False):
     test_dataset = test_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     train = train_dataset.map(lambda x: dlu.load_image_train(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    train = train.shuffle(buffer_size=BUFFER_SIZE, seed=SEED, reshuffle_each_iteration=True)
-    train = train.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    train = train.shuffle(buffer_size=BUFFER_SIZE, seed=seed, reshuffle_each_iteration=True)
+    train = train.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     train = train.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     valid = valid_dataset.map(lambda x: dlu.load_image_test(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    valid = valid.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    valid = valid.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     valid = valid.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     test = test_dataset.map(lambda x: dlu.load_image_test(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    test = test.padded_batch(BATCH_SIZE, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
+    test = test.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     test = test.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return train, valid, test

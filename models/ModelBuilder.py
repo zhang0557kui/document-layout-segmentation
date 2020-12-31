@@ -8,9 +8,9 @@ MODEL_DICT = {"unet": build_unet,
               "fast_fcn": build_fast_fcn,
               "deeplabv3+" build_deeplabv3plus}
 
-def build_model(name, num_channels):
+def build_model(name, img_size, num_channels):
     if name in MODEL_DICT:
-        return MODEL_DICT[name](num_channels)
+        return MODEL_DICT[name].build(img_size, num_channels)
     else:
         raise NotImplementedError("{} is not a supported model".format(name))
 
