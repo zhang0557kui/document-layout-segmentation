@@ -1,8 +1,8 @@
+import os
 import tensorflow as tf
 
-import gated_shape_cnn.datasets.dad.raw_dataset
-
-from gated_shape_cnn.training import Dataset
+from models.gated_scnn.gated_shape_cnn.datasets.dad.raw_dataset import DADRaw
+from models.gated_scnn.gated_shape_cnn.training.dataset import Dataset
 
 
 class DAD(Dataset):
@@ -23,7 +23,7 @@ class DAD(Dataset):
             network_input_w,
             seed,
             debug)
-        self.raw_data = gated_shape_cnn.datasets.dad.raw_dataset.DADRaw(data_dir, seed)
+        self.raw_data = DADRaw(data_dir, seed)
         
         # Build edge segs if needed (this may take a while)
         if not os.path.exists(os.path.join(data_dir, "edges")):

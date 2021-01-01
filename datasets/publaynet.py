@@ -1,4 +1,6 @@
 import pickle
+import os
+import tensorflow as tf
 
 import utils.DataLoaderUtils as dlu
 from utils.AnnotationUtils import write_publaynet_masks
@@ -17,6 +19,7 @@ SAVED_TRAIN_PKL_FILE = 'saved_publaynet_train_paths.pkl'
 SAVED_VAL_PKL_FILE = 'saved_publaynet_val_paths.pkl'
 
 BUFFER_SIZE = 500
+MASK_DIR = ""
 
 def write_masks(dataset_dir, is_val_set=False):
     anno_dir = dataset_dir
@@ -25,7 +28,7 @@ def write_masks(dataset_dir, is_val_set=False):
         used_tags = pickle.load(open(pkl_file, 'rb'))[0]
     else:
         used_tags = {}
-        anno_path = os.path.join(anno_dir, "val.json") is is_val_set else os.path.join(anno_dir, "train.json")
+        anno_path = os.path.join(anno_dir, "val.json") if is_val_set else os.path.join(anno_dir, "train.json")
         used_tags = write_publaynet_masks(anno_path, is_val_set=is_val_set)
         pickle.dump((used_tags, ), open(pkl_file, 'wb'))
 

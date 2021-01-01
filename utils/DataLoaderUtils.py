@@ -137,7 +137,7 @@ def parse_image(img_path: str, background_class: int, adjacent_mask_dir: str) ->
 
     data_path = tf.strings.regex_replace(img_path, "jpg", "txt")
     if tf.equal(adjacent_mask_dir, ""):
-        mask_path = tf.strings.regex_replace(mask_path, "jpg", "png")
+        mask_path = tf.strings.regex_replace(img_path, "jpg", "png")
     else:
         mask_path = tf.strings.regex_replace(img_path, "documents", adjacent_mask_dir)
         mask_path = tf.strings.regex_replace(mask_path, "jpg", "png")

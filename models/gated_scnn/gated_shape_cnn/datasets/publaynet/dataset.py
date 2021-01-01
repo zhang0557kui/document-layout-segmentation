@@ -1,8 +1,8 @@
+import os
 import tensorflow as tf
 
-import gated_shape_cnn.datasets.publaynet.raw_dataset
-
-from gated_shape_cnn.training import Dataset
+from models.gated_scnn.gated_shape_cnn.datasets.publaynet.raw_dataset import PubLayNetRaw
+from models.gated_scnn.gated_shape_cnn.training.dataset import Dataset
 
 
 class PubLayNet(Dataset):
@@ -13,7 +13,7 @@ class PubLayNet(Dataset):
             network_input_h,
             network_input_w,
             debug,
-            data_dir
+            data_dir,
             n_classes,
             seed):
         super(DAD, self).__init__(
@@ -21,7 +21,7 @@ class PubLayNet(Dataset):
             batch_size,
             network_input_h,
             network_input_w,
-            seed
+            seed,
             debug)
         self.raw_data = gated_shape_cnn.datasets.dad.raw_dataset.PubLayNetRaw(data_dir, seed)
         

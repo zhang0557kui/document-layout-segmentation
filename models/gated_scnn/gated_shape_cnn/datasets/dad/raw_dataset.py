@@ -12,7 +12,7 @@ from models.gated_scnn.gated_shape_cnn.training.utils import flat_label_to_edge_
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.AnnotationUtils import write_masks_from_annotation
+from utils.AnnotationUtils import write_dad_masks
 from utils.DataLoaderUtils import stratify_train_test_split
 
 #%%
@@ -109,21 +109,23 @@ class DADRaw:
         
     
     def build_and_split(self, border_size=6, force=False):
+        anno_dir = os.path.join(self.data_dir, "annotations")
+        mask_dir = os.path.join(self.data_dir, "masks")
         if os.path.exists(SAVED_PKL_FILE) and not force:
             all_used_tags, class_mapping = pickle.load(open(SAVED_PKL_FILE, 'rb'))
         else:
             all_used_tags = {}
             for anno_json in os.listdir(anno_dir):
                 anno_path = os.path.join(anno_dir, anno_json)
-                _, class_mapping, used_tags, = write_masks_from_annotation(anno_path, 
-                                                                           all_reduced_masks_dir, 
-                                                                           tag_names=TAG_NAMES,
-                                                                           tag_mapping=TAG_MAPPING,
-                                                                           buffer_size=border_size,
-                                                                           force=force)
+                _, class_mapping, used_tags, = write_dad_masks(anno_path, 
+                                                               mask_dir, 
+                                                               tag_names=TAG_NAMES,
+                                                               tag_mapping=TAG_MAPPING,
+                                                               buffer_size=border_size,
+                                                               force=force)
                 
                 all_used_tags.update(used_tags)
-            pickle.dump((all_used_tags, class_mapping), open(pkl_file, 'wb'))
+            pickle.dump((all_used_tags, class_mapping), open(SAVED_PKL_FILE, 'wb'))
         
         #%% - get data stats
         usage_numbers = {}
@@ -141,7 +143,7 @@ class DADRaw:
             if len(used_tags) != 0:
                 filtered_used_tags[path] = used_tags
         
-        train_paths, test_paths = stratify_train_test_split(filtered_used_tags, 0.10, seed=self.seed, debug=True)
+        train_paths, test_paths = stratify_train_test_split(filtered_used_tags, 0.10, seed=self.seed, debug=False)
         
         #%% - further split the test set into test and validation sets
         test_used_tags = {}
@@ -149,7 +151,7 @@ class DADRaw:
             if path in test_paths:
                 test_used_tags[path] = used_tags
         
-        test_paths, valid_paths = stratify_train_test_split(test_used_tags, 0.50, seed=self.seed, debug=True)
+        test_paths, valid_paths = stratify_train_test_split(test_used_tags, 0.50, seed=self.seed, debug=False)
         
         return train_paths, valid_paths, test_paths, len(class_mapping)
 

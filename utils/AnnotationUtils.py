@@ -99,9 +99,6 @@ def write_dad_masks(vott_filepath, mask_out_path, tag_names=None,
             if tag_mapping and key in tag_mapping:
                 key = tag_mapping[key]
                 
-            if not split_crop:
-                used_tags[img_path].add(key)
-            
             rgb = class_mapping[key]
             x = int(region["boundingBox"]["left"])
             y = int(region["boundingBox"]["top"])
@@ -109,6 +106,7 @@ def write_dad_masks(vott_filepath, mask_out_path, tag_names=None,
             h = int(region["boundingBox"]["height"])
             area = w*h
             area_and_boxes.append((area, x, y, w, h, rgb))
+            used_tags[img_path].add(rgb[0])
         
         # sort by area, so smaller boxes are on the top layer, also write out box file
         if os.path.exists(box_path):

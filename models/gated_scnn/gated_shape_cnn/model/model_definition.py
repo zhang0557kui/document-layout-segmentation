@@ -1,7 +1,7 @@
 import imageio
 import tensorflow as tf
 
-from gated_shape_cnn.model.layers import (
+from models.gated_scnn.gated_shape_cnn.model.layers import (
     gradient_mag, ShapeStream, AtrousPyramidPooling, FinalLogitLayer, Resnet50Backbone)
 
 

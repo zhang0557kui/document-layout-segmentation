@@ -1,4 +1,6 @@
 import pickle
+import os
+import tensorflow as tf
 
 import utils.DataLoaderUtils as dlu
 from utils.AnnotationUtils import write_dad_masks
@@ -97,8 +99,10 @@ def write_masks(dataset_dir, border_buffer=6):
     return all_used_tags, class_mapping
  
 def build_dad_dataset(dataset_dir, img_size, batch_size, seed, debug=False):
+    import pdb
+    pdb.set_trace()
     all_used_tags, class_mapping = write_masks(dataset_dir)
-
+    
     # Filter out any pages that have no classes (this is helpful when messing around with active classes)
     filtered_used_tags = {}
     for path, used_tags in all_used_tags.items():
@@ -115,15 +119,14 @@ def build_dad_dataset(dataset_dir, img_size, batch_size, seed, debug=False):
             test_used_tags[path] = used_tags
 
     test_paths, valid_paths = dlu.stratify_train_test_split(test_used_tags, 0.50, seed=seed, debug=debug)
-
     train_dataset = tf.data.Dataset.from_tensor_slices(train_paths)
-    train_dataset = train_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_dataset = train_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     valid_dataset = tf.data.Dataset.from_tensor_slices(valid_paths)
-    valid_dataset = valid_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    valid_dataset = valid_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
     
     test_dataset = tf.data.Dataset.from_tensor_slices(test_paths)
-    test_dataset = test_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    test_dataset = test_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     train = train_dataset.map(lambda x: dlu.load_image_train(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
     train = train.shuffle(buffer_size=BUFFER_SIZE, seed=seed, reshuffle_each_iteration=True)

@@ -55,7 +55,7 @@ class PubLayNetRaw:
             used_tags = pickle.load(open(pkl_file, 'rb'))[0]
         else:
             used_tags = {}
-            anno_path = os.path.join(anno_dir, "val.json") is is_val_set else os.path.join(anno_dir, "train.json")
+            anno_path = os.path.join(anno_dir, "val.json") if is_val_set else os.path.join(anno_dir, "train.json")
             used_tags = write_publaynet_masks(anno_path, is_val_set=is_val_set, draw_border=draw_border)
             pickle.dump((used_tags, ), open(pkl_file, 'wb'))
 

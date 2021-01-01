@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
-from gated_shape_cnn.model.layers import gradient_mag
+from models.gated_scnn.gated_shape_cnn.model.layers import gradient_mag
 
 
 def _generalised_dice(y_true, y_pred, eps=0.0, from_logits=True):

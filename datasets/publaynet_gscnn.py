@@ -1,3 +1,5 @@
+import os
+
 from models.gated_scnn.gated_shape_cnn.datasets.publaynet.dataset import PubLayNet
 
 class_mapping = {1: 'text', 2: 'title', 3: 'list', 4: 'table', 5: 'figure', 0: 'background'}
