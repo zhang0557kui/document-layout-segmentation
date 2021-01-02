@@ -331,9 +331,9 @@ if __name__ == "__main__":
 
     # Train the model
     print("Starting train loop...\n")
-    model_name = args.model + "_best.h5"
+    model_name = args.model + "_{}_best.h5".format(args.dataset)
     if args.model == "gated_scnn":
-        model_name = args.model + "_best"
+        model_name = args.model + "_{}_best".format(args.dataset)
         train_gscnn(model, train, valid, args.base_lr, args.patience, model_name)
     else:
         train_generic(model, train, valid, args.base_lr, args.patience, model_name)
