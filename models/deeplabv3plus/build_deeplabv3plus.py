@@ -65,8 +65,6 @@ def ASPP(tensor):
 
 
 def build(img_size, nclasses):
-    print('*** Building DeepLabv3Plus Network ***')
-
     base_model = tf.keras.applications.ResNet50(input_shape=[img_size, img_size, 3], include_top=False)
 
     image_features = base_model.get_layer('conv4_block6_out').output
@@ -104,7 +102,6 @@ def build(img_size, nclasses):
         we assume that `y_pred` encodes a probability distribution.
     '''     
     model = Model(inputs=base_model.input, outputs=x, name='DeepLabV3_Plus')
-    print(f'*** Output_Shape => {model.output_shape} ***')
     
     # Add some regularization
     for layer in model.layers:

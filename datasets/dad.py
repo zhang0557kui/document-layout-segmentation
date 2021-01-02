@@ -99,8 +99,6 @@ def write_masks(dataset_dir, border_buffer=6):
     return all_used_tags, class_mapping
  
 def build_dad_dataset(dataset_dir, img_size, batch_size, seed, debug=False):
-    import pdb
-    pdb.set_trace()
     all_used_tags, class_mapping = write_masks(dataset_dir)
     
     # Filter out any pages that have no classes (this is helpful when messing around with active classes)

@@ -1,4 +1,6 @@
 import argparse
+import numpy as np
+import tensorflow as tf
 
 from datasets.DatasetBuilder import get_dataset
 from models.gated_scnn.gated_shape_cnn.training.loss import loss as gscnn_loss
@@ -6,6 +8,33 @@ from loss import seg_loss, SegmentationAccuracy
 from utils.MetricsUtils import evaluate_segmentation
 from models.ModelBuilder import build_model
 
+def create_mask(pred_mask):
+    """Return a filter mask with the top 1 predicitons
+    only.
+
+    Parameters
+    ----------
+    pred_mask : tf.Tensor
+        A [IMG_SIZE, IMG_SIZE, N_CLASS] tensor. For each pixel we have
+        N_CLASS values (vector) which represents the probability of the pixel
+        being these classes. Example: A pixel with the vector [0.0, 0.0, 1.0]
+        has been predicted class 2 with a probability of 100%.
+
+    Returns
+    -------
+    tf.Tensor
+        A [IMG_SIZE, IMG_SIZE, 1] mask with top 1 predictions
+        for each pixels.
+    """
+    # pred_mask -> [IMG_SIZE, SIZE, N_CLASS]
+    # 1 prediction for each class but we want the highest score only
+    # so we use argmax
+    pred_mask = tf.argmax(pred_mask, axis=-1)
+    # pred_mask becomes [IMG_SIZE, IMG_SIZE]
+    # but matplotlib and others need [IMG_SIZE, IMG_SIZE, 1]
+    pred_mask = tf.expand_dims(pred_mask, axis=-1)
+    return pred_mask
+ 
 
 def report_results(model_name, test, valid, class_mapping, is_gscnn=False):
     model = tf.keras.models.load_model(model_name, 
@@ -92,6 +121,8 @@ def report_results(model_name, test, valid, class_mapping, is_gscnn=False):
     print("Just validation F1 Score was {}".format(f1_avg))
 
     print("Class Accuracies:")
+    print("|Class Name|Test|Val|")
+    print("|----------|----|---|")
     for i, name in class_mapping.items():
         test_acc_score = avg_test_class_accuracies[i]
         test_class_count = avg_test_class_count[i]
@@ -103,6 +134,8 @@ def report_results(model_name, test, valid, class_mapping, is_gscnn=False):
 
     print("\n")
     print("Class mIOU:")
+    print("|Class Name|Test|Val|")
+    print("|----------|----|---|")
     for i, name in class_mapping.items():
         test_iou_score = avg_test_class_iou[i]
         test_class_count = avg_test_class_count[i]
@@ -112,7 +145,7 @@ def report_results(model_name, test, valid, class_mapping, is_gscnn=False):
                                   test_iou_score/float(test_class_count)*100.0,
                                   valid_iou_score/float(valid_class_count)*100.0))
 
-def train_gscnn(model, train, valid, test, lr, patience, model_name):
+def train_gscnn(model, train, valid, lr, patience, model_name):
     def calc_loss(model, input_image, gt_mask, gt_edges, gt_boxes, training, loss_weights):
         out = model(input_image, training=training)
         prediction, shape_head = out[..., :-1], out[..., -1:]
@@ -130,7 +163,7 @@ def train_gscnn(model, train, valid, test, lr, patience, model_name):
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
     
-    best_val_loss = 1000000.0
+    best_val_loss = 100000000.0
     num_bad_iters = 0
     num_epochs = 100
     lr_decreased = False
@@ -138,7 +171,7 @@ def train_gscnn(model, train, valid, test, lr, patience, model_name):
         if num_bad_iters >= patience and lr_decreased:
             print("Val Loss is not improving, exiting...")
             break
-        elif num_bad_iters == patience:
+        elif num_bad_iters >= patience:
             print("Lowering lr, restarting from best model")
             lr_decreased = True
             num_bad_iters = 0
@@ -171,7 +204,7 @@ def train_gscnn(model, train, valid, test, lr, patience, model_name):
             step += 1
             if step % 100 == 0:
                 print("Step {}: Loss: {:.3f}, Accuracy: {:.3%}".format(step, epoch_loss_avg.result(), epoch_accuracy.result()))
-    
+        
         for input_image, gt_mask, gt_edges, gt_boxes in valid:
             tf.keras.backend.clear_session()
             loss_value = calc_loss(model, input_image, gt_mask, gt_edges, gt_boxes, False, loss_weights)
@@ -186,7 +219,7 @@ def train_gscnn(model, train, valid, test, lr, patience, model_name):
 
             epoch_val_loss_avg.update_state(loss_value)
             epoch_val_accuracy.update_state(flat_label_masked, flat_pred_masked)
-    
+        
         val_loss = epoch_val_loss_avg.result()
         if val_loss < best_val_loss:
             print("Val Loss decreased from {:.4f} to {:.4f}".format(best_val_loss, val_loss))
@@ -198,12 +231,12 @@ def train_gscnn(model, train, valid, test, lr, patience, model_name):
             num_bad_iters += 1
     
         print("Epoch: {:02d} Loss: {:.3f}, Accuracy: {:.3%}, Val Loss: {:.3f}, Val Accuracy: {:.3%}\n".format(epoch, 
-                                                                                                        epoch_loss_avg.result(),
+                                                                                                       epoch_loss_avg.result(),
                                                                                                         epoch_accuracy.result(),
                                                                                                         epoch_val_loss_avg.result(),
                                                                                                         epoch_val_accuracy.result()))       
 
-def train(model, train, valid, test, lr, patience, model_name):
+def train_generic(model, train, valid, lr, patience, model_name):
     def calc_loss(model, input_image, gt_mask, gt_boxes, training):
         predicted_mask = model(input_image, training=training)
         return seg_loss(gt_mask, predicted_mask, gt_boxes)
@@ -223,7 +256,7 @@ def train(model, train, valid, test, lr, patience, model_name):
         if num_bad_iters >= patience and lr_decreased:
             print("Val Loss is not improving, exiting...")
             break
-        elif num_bad_iters == patience:
+        elif num_bad_iters >= patience:
             print("Lowering lr, restarting from best model")
             lr_decreased = True
             num_bad_iters = 0
@@ -252,7 +285,7 @@ def train(model, train, valid, test, lr, patience, model_name):
             loss_value = calc_loss(model, input_image, gt_mask, gt_boxes, training=False)
             epoch_val_loss_avg.update_state(loss_value)
             epoch_val_accuracy.update_state(gt_mask, model(input_image, training=False))
-    
+
         val_loss = epoch_val_loss_avg.result()
         if val_loss < best_val_loss:
             print("Val Loss decreased from {:.4f} to {:.4f}".format(best_val_loss, val_loss))
@@ -269,47 +302,45 @@ def train(model, train, valid, test, lr, patience, model_name):
                                                                                                         epoch_val_loss_avg.result(),
                                                                                                         epoch_val_accuracy.result()))       
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a segmentation model.')
     
     parser.add_argument('--model', help='One of "unet", "fast_fcn", "gated_scnn", or "deeplabv3plus".')
-    parser.add_argument('--num-classes', type=int, help='Number of classes to segment, including background.')
     parser.add_argument('--ignore-class', type=int, default=255, help='Class number to ignore. Defualt 255.')
-    parser.add_argument('--patience', type=int, default=5, help='Set how many epochs to wait for val loss to increase.')
-    parser.add_argument('--base-lr', type=float, default=1.0e-4, help='Set initial learning rate. After val loss stops increasing for number of epochs specified by --patience, the model reloads to the best point and divides the learning rate by 10 for fine tuning')
-    parser.add_argument('--use-box-loss', default=None, help='If set, use box loss regression during loss calculation')
+    parser.add_argument('--patience', type=int, default=5, help='Set how many epochs to wait for val loss to increase. Default 5.')
+    parser.add_argument('--base-lr', type=float, default=1.0e-4, help='Set initial learning rate. After val loss stops increasing for number of epochs specified by --patience, the model reloads to the best point and divides the learning rate by 10 for fine tuning. Default 1.0e-4.')
+    parser.add_argument('--box-loss', default=False, action='store_true', help='If set, use box loss regression during loss calculation')
 
     parser.add_argument('--dataset', help='Either "dad" or "publaynet".')
     parser.add_argument('--dataset-dir', help='Root folder of the dataset.')
-    parser.add_argument('--img-size', type=int, default=512, help='Size of input image to train on.')
-    parser.add_argument('--batch-size', type=int, defualt=8, help='Batch size of datasets.')
-    parser.add_argument('--seed', type=int, defualt=45, help='The seed for all random functions.')
+    parser.add_argument('--img-size', type=int, default=512, help='Size of input image to train on. Default 512.')
+    parser.add_argument('--batch-size', type=int, default=8, help='Batch size of datasets. Default 8.')
+    parser.add_argument('--seed', type=int, default=45, help='The seed for all random functions. Default 45.')
     
     # Parse the command args
     args = parser.parse_args()
     
     # Build the requested dataset and get the int->label class mapping
     print("Building dataset...\n")
-    build_dataset = get_dataset(args.dataset, args.model)
-    train, valid, test, class_mapping = build_dataset(args.dataset_dir, args.img_size, args.batch_size, args.seed)
+    dataset_builder = get_dataset(args.dataset, args.model)
+    train, valid, test, class_mapping = dataset_builder(args.dataset_dir, args.img_size, args.batch_size, args.seed)
 
     # Build the specified segmentation model
     print("Building model...\n")
-    model = build_model(args.model, args.img_size, args.num_classes)
+    model = build_model(args.model, args.img_size, len(class_mapping))
 
     # Train the model
     print("Starting train loop...\n")
-    model_name = args.model + "best.h5"
+    model_name = args.model + "_best.h5"
     if args.model == "gated_scnn":
+        model_name = args.model + "_best"
         train_gscnn(model, train, valid, args.base_lr, args.patience, model_name)
     else:
-        train(model, train, valid, args.base_lr, args.patience, model_name)
+        train_generic(model, train, valid, args.base_lr, args.patience, model_name)
     
     # Report stats from the test set
-    print("Gather accuracy statistics...\n")
+    print("Gathering accuracy statistics...\n")
     report_results(model_name, test, valid, class_mapping, is_gscnn=args.model == "gated_scnn")
 
-    print("\nCOMPLETE\n")
+    print("\nCOMPLETE: Model saved to {}\n".format(model_name))
 
