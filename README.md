@@ -3,7 +3,14 @@
 This repository provides a framework to train segmentation models to segment document layouts. Currently, the supported training datasets include [DAD](https://github.com/logan-markewich/DAD-Dense-Article-Dataset) and [PubLayNet](https://developer.ibm.com/technologies/artificial-intelligence/data/publaynet/).
 
 [Setup](#Setup)
-[Dataset Preparation](#Dataset%20Preparation)
+
+[Dataset Preparation](#dataset-preparation)
+
+[Training](#Training)
+
+[Inference](#Inference)
+
+[Credits](#Credits)
 
 ## Setup
 ### Dependencies
@@ -40,7 +47,7 @@ rm -f labels.tar.gz
 ```
 This code downloads the train-0 publaynet tarball (you could also add more from [PubLayNet's download page](https://dax-cdn.cdn.appdomain.cloud/dax-publaynet/1.0.0/PubLayNet.html?_ga=2.26184379.726029236.1609705747-1098120955.1605642577&cm_mc_uid=21438371251816056425771&cm_mc_sid_50200000=85056661609705747259), the val tarball, and the labels tarball. It then extracts everything into the publaynet folder into the proper structure.
 
-## Usage
+## Training
 ### Help
 ```
 python ./train.py -h
