@@ -8,6 +8,8 @@ import os
 import pandas as pd
 import tensorflow as tf
 
+from PIL import Image
+
 # TODO: This should be temporary! Fix annotation files to be consistent
 TRANSLATE = {"publication": "copyright",
              "copyrights": "copyright",
@@ -164,7 +166,7 @@ def write_publaynet_masks(json_path, is_val_set=False, draw_border=True):
         if is_val_set:
             filename = os.path.join(os.path.join(os.path.dirname(json_path), 'val'), os.path.basename(images[img_id]['file_name']))
         else:
-            filename = os.path.join(os.path.join(os.path.dirname(json_path), 'train'), os.path.basename(images[img_id]['file_nam    e']))    
+            filename = os.path.join(os.path.join(os.path.dirname(json_path), 'train'), os.path.basename(images[img_id]['file_name']))    
 
         if os.path.exists(filename):
             filename = filename.replace('jpg', 'png')

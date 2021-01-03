@@ -16,14 +16,14 @@ class PubLayNet(Dataset):
             data_dir,
             n_classes,
             seed):
-        super(DAD, self).__init__(
+        super(PubLayNet, self).__init__(
             n_classes,
             batch_size,
             network_input_h,
             network_input_w,
             seed,
             debug)
-        self.raw_data = gated_shape_cnn.datasets.dad.raw_dataset.PubLayNetRaw(data_dir, seed)
+        self.raw_data = PubLayNetRaw(data_dir, seed)
         
         # Build edge segs if needed (this may take a while)
         if not os.path.exists(os.path.join(data_dir, "edges")):

@@ -49,13 +49,13 @@ def build_publaynet_dataset(dataset_dir, img_size, batch_size, seed, debug=False
     valid_paths, test_paths = dlu.stratify_train_test_split(used_val_tags, 0.5, seed=seed)
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_paths)
-    train_dataset = train_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_dataset = train_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     valid_dataset = tf.data.Dataset.from_tensor_slices(valid_paths)
-    valid_dataset = valid_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    valid_dataset = valid_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
     
     test_dataset = tf.data.Dataset.from_tensor_slices(test_paths)
-    test_dataset = test_dataset.map(lambda x: dlu.parse_dad_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    test_dataset = test_dataset.map(lambda x: dlu.parse_image(x, 0, MASK_DIR), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     train = train_dataset.map(lambda x: dlu.load_image_train(x, img_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
     train = train.shuffle(buffer_size=BUFFER_SIZE, seed=seed, reshuffle_each_iteration=True)
@@ -70,5 +70,5 @@ def build_publaynet_dataset(dataset_dir, img_size, batch_size, seed, debug=False
     test = test.padded_batch(batch_size, drop_remainder=True, padded_shapes=([img_size, img_size, 3], [img_size, img_size, 1], [None, 4]))
     test = test.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-    return train, valid, test
+    return train, valid, test, class_mapping
  

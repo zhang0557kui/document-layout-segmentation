@@ -12,7 +12,7 @@ def build_gscnn_dataset(dataset_dir, img_size, batch_size, seed):
         img_size,
         debug=False,
         data_dir=dataset_dir,
-        n_classes=len(TAG_NAMES),
+        n_classes=len(class_mapping),
         seed=seed)
 
     train = publaynet_dataset_loader.build_training_dataset()

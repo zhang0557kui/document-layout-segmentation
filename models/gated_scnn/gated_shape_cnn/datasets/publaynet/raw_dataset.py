@@ -44,9 +44,8 @@ class PubLayNetRaw:
         """
         self.data_dir = data_dir
         self.seed = seed
-        assert os.path.exists(self.img_dir)
         
-        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split()
+        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split(self.seed)
         
     def _write_masks(self, dataset_dir, is_val_set=False, draw_border=True, force=False):
         anno_dir = dataset_dir
@@ -62,11 +61,11 @@ class PubLayNetRaw:
         return used_tags, {1: 'text', 2: 'title', 3: 'list', 4: 'table', 5: 'figure', 0: 'background'}
  
     def build_and_split(self, seed, draw_border=True, force=False):
-        train_dir = os.path.join(dataset_dir, "train")
-        val_dir = os.path.join(dataset_dir, "val")
+        train_dir = os.path.join(self.data_dir, "train")
+        val_dir = os.path.join(self.data_dir, "val")
 
-        used_train_tags, class_mapping = write_masks(dataset_dir, is_val_set=False, draw_border=draw_border, force=force)
-        used_val_tags, class_mapping = write_masks(dataset_dir, is_val_set=True, draw_border=draw_border, force=force)
+        used_train_tags, class_mapping = self._write_masks(self.data_dir, is_val_set=False, draw_border=draw_border, force=force)
+        used_val_tags, class_mapping = self._write_masks(self.data_dir, is_val_set=True, draw_border=draw_border, force=force)
         
         train_paths = [os.path.join(train_dir, x) for x in os.listdir(train_dir) if x.endswith('.jpg')]
 
@@ -96,8 +95,10 @@ class PubLayNetRaw:
         label_path = p.replace("jpg", "png")
 
         edge_dir = img_path.replace("train", "edges") if "train" in img_path else img_path.replace("val", "edges")
+        if not os.path.exists(edge_dir):
+            os.makedirs(edge_dir)
         edge_label_path = os.path.join(edge_dir, os.path.basename(img_path).replace("jpg", "png"))
-
+    
         return img_path, label_path, edge_label_path
 
     def dataset_paths(self, split):
@@ -120,8 +121,8 @@ class PubLayNetRaw:
         p = multiprocessing.Pool(4)
         
         # Force re-write with no borders
-        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split(draw_border=False, force=True)
-
+        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split(self.seed, draw_border=False, force=True)
+        
         image_paths = self.get_img_paths("train")
         image_paths += self.get_img_paths("valid")
         image_paths += self.get_img_paths("test")
@@ -131,5 +132,5 @@ class PubLayNetRaw:
             sys.stderr.write('\rdone {0:%}'.format(i / num_ps))
 
         # Re-write original masks
-        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split(force=True)
+        self.train_paths, self.valid_paths, self.test_paths, self.num_classes = self.build_and_split(self.seed, force=True)
 
