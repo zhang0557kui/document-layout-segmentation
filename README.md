@@ -4,8 +4,6 @@ This repository provides a framework to train segmentation models to segment doc
 
 [Setup](#Setup)
 
-[Dataset Preparation](#dataset-preparation)
-
 [Training](#Training)
 
 [Inference](#Inference)
