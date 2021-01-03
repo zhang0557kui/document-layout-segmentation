@@ -2,6 +2,9 @@
 
 This repository provides a framework to train segmentation models to segment document layouts. Currently, the supported training datasets include [DAD](https://github.com/logan-markewich/DAD-Dense-Article-Dataset) and [PubLayNet](https://developer.ibm.com/technologies/artificial-intelligence/data/publaynet/).
 
+[Setup](#Setup)
+[Dataset Preparation](#Dataset%20Preparation)
+
 ## Setup
 ### Dependencies
 This repo has been tested only with tensorflow-gpu==2.3.1 and tensorflow-addons=0.11.2.
