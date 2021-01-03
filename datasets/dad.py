@@ -84,6 +84,7 @@ def write_masks(dataset_dir, border_buffer=6):
     if os.path.exists(SAVED_PKL_FILE):
         all_used_tags, class_mapping = pickle.load(open(SAVED_PKL_FILE, 'rb'))
     else:
+        print("Running full mask generation, this may take a bit.")
         all_used_tags = {}
         for anno_json in os.listdir(anno_dir):
             anno_path = os.path.join(anno_dir, anno_json)

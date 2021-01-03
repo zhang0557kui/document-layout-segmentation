@@ -27,6 +27,7 @@ class DAD(Dataset):
         
         # Build edge segs if needed (this may take a while)
         if not os.path.exists(os.path.join(data_dir, "edges")):
+            print("Generating borderless masks, their corresponding edge masks, and re-generating masks with border. This may take a long time.")
             self.raw_data.build_edge_segs()
 
     def get_paths(self, train, is_test=False):

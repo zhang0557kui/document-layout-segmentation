@@ -27,6 +27,7 @@ class PubLayNet(Dataset):
         
         # Build edge segs if needed (this may take a while)
         if not os.path.exists(os.path.join(data_dir, "edges")):
+            print("Generating borderless masks, their corresponding edge masks, and re-generating masks with border.     This may take a LONG time. Like, go drink a beer long time... or even go drink a few beers long time. If you have more cores, go hunt down the publaynet raw_dataset.py file and up the map pool.")   
             self.raw_data.build_edge_segs()
 
     def get_paths(self, train, is_test=False):
