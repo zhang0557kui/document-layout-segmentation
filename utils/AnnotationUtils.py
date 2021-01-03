@@ -169,7 +169,7 @@ def write_publaynet_masks(json_path, is_val_set=False, draw_border=True):
             filename = os.path.join(os.path.join(os.path.dirname(json_path), 'train'), os.path.basename(images[img_id]['file_name']))    
 
         if os.path.exists(filename):
-            filename = filename.replace('jpg', 'png')
+            seg_filename = filename.replace('jpg', 'png')
         else:
             continue
 
@@ -198,13 +198,13 @@ def write_publaynet_masks(json_path, is_val_set=False, draw_border=True):
                     print("Invalid box sizes for img {}, skipping border".format(images[img_id]['file_name']))
             area_and_boxes.append((int(ann['category_id']), y1, x1, current_bbox[3], current_bbox[2]))  # we transpose these
 
-        with open(filename.replace("png", "txt"), 'w') as box_f:
+        with open(seg_filename.replace("png", "txt"), 'w') as box_f:
             for class_id, x, y, w, h in area_and_boxes:
                 box_f.write("{},{},{},{},{}\n".format(class_id, x, y, w, h)) 
 
         seg_mask = seg_mask.T
         seg_img = Image.fromarray(seg_mask.astype(dtype=np.uint8))
-        with tf.io.gfile.GFile(filename, mode='w') as f:
+        with tf.io.gfile.GFile(seg_filename, mode='w') as f:
             seg_img.save(f, 'PNG')
 
     return used_tags

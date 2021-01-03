@@ -94,10 +94,10 @@ class PubLayNetRaw:
         
         label_path = p.replace("jpg", "png")
 
-        edge_dir = img_path.replace("train", "edges") if "train" in img_path else img_path.replace("val", "edges")
+        edge_dir = p.replace("train", "edges") if "train" in p else p.replace("val", "edges")
         if not os.path.exists(edge_dir):
             os.makedirs(edge_dir)
-        edge_label_path = os.path.join(edge_dir, os.path.basename(img_path).replace("jpg", "png"))
+        edge_label_path = os.path.join(edge_dir, os.path.basename(p).replace("jpg", "png"))
     
         return img_path, label_path, edge_label_path
 
