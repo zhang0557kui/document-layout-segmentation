@@ -5,7 +5,6 @@ import json
 import math
 import numpy as np
 import os
-import pandas as pd
 import tensorflow as tf
 
 from PIL import Image
@@ -196,7 +195,7 @@ def write_publaynet_masks(json_path, is_val_set=False, draw_border=True):
                     seg_mask[x1:x2, y2] = 255
                 except Exception as e:
                     print("Invalid box sizes for img {}, skipping border".format(images[img_id]['file_name']))
-            area_and_boxes.append((int(ann['category_id']), y1, x1, current_bbox[3], current_bbox[2]))  # we transpose these
+            area_and_boxes.append((int(ann['category_id']), x1, y1, current_bbox[2], current_bbox[3]))  # we transpose these
 
         with open(seg_filename.replace("png", "txt"), 'w') as box_f:
             for class_id, x, y, w, h in area_and_boxes:
