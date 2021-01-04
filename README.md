@@ -12,7 +12,12 @@ This repository provides a framework to train segmentation models to segment doc
 
 ## Setup
 ### Dependencies
-This repo has been tested only with tensorflow-gpu==2.3.1 and tensorflow-addons=0.11.2.
+This repo has been tested only with tensorflow-gpu==2.3.1 and tensorflow-addons=0.11.2. The full list of pip dependencies is in requirements.txt.
+
+Additionally, there is a minor dependence on tensorflow-examples. This can be installed using:
+```
+pip install -q git+https://github.com/tensorflow/examples.git
+```
 
 ### Dataset Preparation
 The repo contains empty "dad" and "publaynet" folders.
