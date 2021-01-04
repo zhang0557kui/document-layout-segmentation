@@ -86,7 +86,16 @@ optional arguments:
 ```
 ### Example
 ```
-python ./train.py --model unet --ignore-class 255 --patience 5 --base-lr 0.0001 --box-loss --dataset dad --dataset-dir ./dad --img-size 512 --batch-size 16 --seed 42
+python ./train.py --model unet \
+--ignore-class 255 \
+--patience 5 \
+--base-lr 0.0001 \
+--box-loss \
+--dataset dad \
+--dataset-dir ./dad 
+--img-size 512 \
+--batch-size 16 \
+--seed 42
 ```
 
 ## Inference
