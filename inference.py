@@ -1,4 +1,5 @@
 import argparse
+import cv2
 import os
 import statistics
 import tensorflow as tf
@@ -6,7 +7,7 @@ import tensorflow_addons as tfa
 import numpy as np
 
 from skimage import measure
-
+from train import create_mask
 
 def prepare_single_image(input_img_path, img_size):
     # Load image data
@@ -20,16 +21,13 @@ def prepare_single_image(input_img_path, img_size):
 
     return input_img, os.path.basename(input_img_path)
 
-def cca(pred_mask, out_path, class_mapping, min_area=100, write_boxes=False):
+def cca(pred_mask, class_mapping, min_area=100, return_boxes=False):
     new_mask = pred_mask.copy()
     lbl = measure.label(pred_mask)
 
     regions = measure.regionprops(lbl)
 
-    if write_boxes:
-        box_f = open(out_path.replace("png", "csv"), 'w')
-        box_f.write("class_id,class_name,min_y,min_x,max_y,max_x\n")
-
+    boxes = []
     for region in regions:
         if not region:
             continue
@@ -37,7 +35,7 @@ def cca(pred_mask, out_path, class_mapping, min_area=100, write_boxes=False):
             continue
         last_region = region
         minr, minc, _, maxr, maxc, _ = region.bbox
-
+        
         p1 = (minc, minr)
         p2 = (maxc, maxr)
         
@@ -53,49 +51,90 @@ def cca(pred_mask, out_path, class_mapping, min_area=100, write_boxes=False):
             unique, counts = np.unique(object_region, return_counts=True)
             region_label = unique[np.argmax(counts)]
             #print(unique, counts)
-        if region_label != 0:
+        if return_boxes:
+            boxes.append((region_label, minr, minc, maxr, maxc))
+        elif region_label != 0:
             new_mask[minr:maxr, minc:maxc] = [region_label]
 
-        if write_boxes:
-            box_f.write("{},{},{},{},{},{}\n".format(region_label, 
-                                                     class_mapping[region_label]
-                                                     minr,
-                                                     minc,
-                                                     maxr,
-                                                     maxc))
+    if return_boxes:
+        return boxes
     
-    if write_boxes:
-        box_f.close()
     return new_mask
 
-def write_labelme_json(extracted_boxes, out_path):
-    raise NotImplementedError("UGH THERES MORE???")
+def write_labelme_json(mask, class_mapping, out_path):
+    boxes = cca(mask, class_mapping, return_boxes=True)
+    labelme_template = {"version": "4.2.10",
+                        "flags": {},
+                        "shapes": [],
+                        "imagePath": out_path.replace("json", "jpg"),
+                        "imageData": "null",
+                        "imageHeight": mask.shape[0], 
+                        "imageWidth": mask.shape[1]}
+    for group_id, miny, minx, maxy, maxx in boxes:
+        lableme_template['shapes'].append({"label": class_mapping[group_id],
+                                           "points": [
+                                                [minx, miny],
+                                                [maxx, maxy]
+                                           ],
+                                           "group_id": group_id,
+                                           "shape_type": "rectangle",
+                                           "flags": {}})
 
-def post_process_single(y_pred, y_true, img_name, apply_cca=False, visualize=False):
-    raise NotImplementedError("OH BOY")
+    with open(out_path, 'w') as f:
+        json.dump(labelme_template, f, indent=4)
 
-def post_process_multiple(y_pred, y_true, img_names, apply_cca=False, visualize=False):
-    raise NotImplementedError("IM BUSY OK!")
+def display_sample(display_list):
+    plt.figure(figsize=(18, 18))
+    title = ['Input Image', 'Predicted Mask']
 
-def gated_scnn_seg_inference(model, input_imgs, img_names, apply_cca=False, visualize=False, write_json=False):
-    raise NotImplementedError("NOPE!")
+    for i in range(len(display_list)):
+        plt.subplot(1, len(display_list), i+1)
+        plt.title(title[i])
+        plt.imshow(tf.keras.preprocessing.image.array_to_img(display_list[i]))
+        plt.axis('off')
+    plt.show()
 
-def generic_seg_inference(model, input_imgs, img_names, apply_cca=False, visualize=False, write_json=False):
-    raise NotImplementedError("NEVER!")
+def post_process_predictions(inputs_masks_and_names, class_mapping, apply_cca=False, visualize=False, write_json=False):
+    for img, mask, name in inputs_masks_and_names:
+        if apply_cca:
+            mask = cca(mask, class_mapping)
+
+        if visualize:
+            display_sample([img, mask])
+
+        if write_json:
+            write_labelme_json(mask, class_mapping, name.replace("jpg", "json"))
+
+        cv2.imwrite(name.replace("jpg", "png"))
+
+def generic_seg_inference(model, input_imgs, img_names, class_mapping, is_gscnn=False, apply_cca=False, visualize=False, write_json=False):
+    inputs_masks_and_names = []
+    for img, name in zip(input_imgs, img_names):
+        y_pred = model(img[tf.newaxis,...], training=False)
+        if is_gscnn:
+            y_pred = y_pred[...,:-1]  # gscnn has seg and shape head
+
+        # TODO: the numpy call slows things down, can we do everything with tf operations?
+        mask = create_mask(y_pred)[0].numpy()
+        inputs_masks_and_names.append((img, mask, name))
+
+    post_process_predictions(inputs_masks_and_names, class_mapping, apply_cca=apply_cca, visualize=visualize, write_json=write_json)
+
 
 if __name__ == '__main__':
-    parser = argparse.parser()
-    parser.add_argument("--saved-model", help="Directory or h5 file with a saved model.")
-    parser.add_argument("--model", help'One of "unet", "fast_fcn", "deeplabv3plus", or "gated_scnn".')
-    parser.add_argument("--img-size", type=int, help="Size of images. Should match the size trained on.")
-    parser.add_argument("--saved-pkl", help='The saved PKL file from the training step. It is used for the class mapping.')
-    parser.add_argument("--apply-cca", type=bool, default=False, action='store_true', help="Post process with conncected component analysis. Makes segmentations uniform, but might miss objects.")
-    parser.add_argument("--visualize", type=bool, defualt=False, action='store_true', help="If set, will open a matplotlib plot to see the segmentation visually.")
-    parser.add_argument("--write-annotation", type=bool, defualt=False, action='store_true', help="If set, will also write a json file with annotations in labelme format.")
-
+    parser = argparse.ArgumentParser()
+    
     input_group = parser.add_mutually_exclusive_group(required=True)
     input_group.add_argument("--input-image", help="Single image to segment.")
     input_group.add_argument("--input-folder", help="Folder of images to segment.")
+
+    parser.add_argument("--saved-model", help="Directory or h5 file with a saved model.")
+    parser.add_argument("--model", help='One of "unet", "fast_fcn", "deeplabv3plus", or "gated_scnn".')
+    parser.add_argument("--img-size", type=int, help="Size of images. Should match the size trained on.")
+    parser.add_argument("--saved-pkl", help='The saved PKL file from the training step. It is used for the class mapping.')
+    parser.add_argument("--apply-cca", default=False, action='store_true', help="Post process with conncected component analysis. Makes segmentations uniform, but might miss objects.")
+    parser.add_argument("--visualize", default=False, action='store_true', help="If set, will open a matplotlib plot to see the segmentation visually.")
+    parser.add_argument("--write-annotation", default=False, action='store_true', help="If set, will also write a json file with annotations in labelme format.")
     
     args = parser.parse_args()
     
@@ -120,8 +159,11 @@ if __name__ == '__main__':
 
             img_names.append(img_name)
             input_imgs.append(input_image)
+    
+    # Perform prediction with specified options
+    _, class_mapping = pickle.load(open(args.saved_pkl, 'rb'))
 
-    if "gated" in args.model:
-        gated_scnn_seg_inference(model, input_imgs, img_names, apply_cca=args.apply_cca, visualize=args.visualize, write_json=args.write_annotation)
-    else:
-        generic_seg_inference(model, input_imgs, img_names, apply_cca=args.apply_cca, visualize=args.visualize, w    rite_json=args.write_annotation)
+    generic_seg_inference(model, input_imgs, img_names, class_mapping, is_gscnn="gated" in args.model, 
+                                                                       apply_cca=args.apply_cca, 
+                                                                       visualize=args.visualize, 
+                                                                       write_json=args.write_annotation)
