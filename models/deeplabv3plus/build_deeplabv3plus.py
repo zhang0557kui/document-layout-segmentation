@@ -3,12 +3,6 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import AveragePooling2D, Lambda, Conv2D, Conv2DTranspose, Activation, Reshape, concatenate, Concatenate, BatchNormalization, ZeroPadding2D
 
-def bilinear_upsample(x, size):
-    resized = tf.image.resize(
-        images=x, size=size)
-    return resized
-
-
 def Upsample(tensor, size):
     '''bilinear upsampling'''
     name = tensor.name.split('/')[0] + '_upsample'
@@ -17,7 +11,7 @@ def Upsample(tensor, size):
     #    resized = tf.image.resize(
     #        images=x, size=size)
     #    return resized
-    y = Lambda(lambda x: bilinear_upsample(x, size),
+    y = Lambda(lambda x: tf.image.resize(images=x, size=size),
                output_shape=size, name=name)(tensor)
     return y
 
