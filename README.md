@@ -154,8 +154,14 @@ Since --write-annotation is present, a labelme json file is also saved at ./publ
 
 ## Credits
 MetricsUtils: based on https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/utils/utils.py
+
 DataLoaderUtils: based on https://github.com/dhassault/tf-semantic-example/blob/master/01_semantic_segmentation_basic.ipynb
+
 DeepLabV3Plus Model Definition: based on https://github.com/srihari-humbarwadi/DeepLabV3_Plus-Tensorflow2.0
+
 Gated-SCNN Training and Dataset Loading: based on https://github.com/ben-davidson-6/Gated-SCNN
+
 FastFCN: translated from pytorch to tensorflow from https://github.com/wuhuikai/FastFCN
+
 PubLayNet Mask Generation: based on https://github.com/Lambert-Shirzad/PubLayNet_tfrecords
+
