@@ -104,7 +104,7 @@ The inference script is able to predict segmentation masks for either a single i
 
 The labelme annotations and connected component analysis (CCA) options use the same algorithm. CCA is performed on the image and bounding boxes are extracted for each region. The label of each region is based on the median class in the region (this sometimes results in a tie, in which we just pick the class with the higher number. This could be expanded to expect certain rules). Objects less than 200 pixels of area are filtered out. 
 
-Additionally, when writing the labelme json, we assume only lists and math formulas can fully overlap, all other objects are excluded if they overlap another by over 75%.
+Additionally, when writing the labelme json, we assume only lists and math formulas can fully overlap, all other objects are excluded if they overlap another by over 50% of the smaller objects area.
 
 ### Help
 ```
