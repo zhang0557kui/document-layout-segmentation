@@ -13,6 +13,33 @@ from PIL import Image
 from skimage import measure
 from train import create_mask
 
+ALLOW_OVERLAP = {"list", "math_formula"}
+
+def filter_boxes(boxes, class_mapping, tol=0.5):
+    keep_box = {x: True for x in range(len(boxes))}
+    for (class_num_a, y1_a, x1_a, y2_a, x2_a) in boxes:
+        i = -1
+        for (class_num_b, y1_b, x1_b, y2_b, x2_b) in boxes:
+            i += 1
+            if x1_a == x1_b and y1_a == y1_b and x2_a == x2_b and y2_a == y2_b:
+                continue  # Skip comparison with itself
+            xA = tf.math.maximum(x1_a, x1_b)
+            yA = tf.math.maximum(y1_a, y1_b)
+            xB = tf.math.minimum(x2_a, x2_b)
+            yB = tf.math.minimum(y2_a, y2_b)
+        
+            # compute the area of intersection rectangle
+            area_a = tf.multiply(x2_a-x1_a, y2_a-y1_a)
+            area_b = tf.multiply(x2_b-x1_b, y2_b-y1_b)
+            interArea = tf.math.abs(tf.math.maximum(xB - xA, 0) * tf.math.maximum(yB - yA, 0))
+            
+            if interArea > area_b*tol and area_b < area_a:
+                if class_mapping[class_num_b] not in ALLOW_OVERLAP:
+                    keep_box[i] = False
+    keep_idxs = [x for x in range(len(boxes)) if keep_box[x]]
+    new_boxes = np.take(boxes, keep_idxs, axis=0)
+    return new_boxes
+
 def scale_boxes(boxes, actual_size, inference_size):
     boxes = np.array(boxes)
 
@@ -81,6 +108,7 @@ def cca(pred_mask, class_mapping, min_area=200, return_boxes=False):
 def write_labelme_json(mask, class_mapping, out_path):
     boxes = cca(mask, class_mapping, return_boxes=True)
     boxes = scale_boxes(boxes, Image.open(out_path.replace("json", "jpg")).size, mask.shape[0])
+    boxes = filter_boxes(boxes, class_mapping)
     labelme_template = {"version": "4.2.10",
                         "flags": {},
                         "shapes": [],
@@ -88,7 +116,7 @@ def write_labelme_json(mask, class_mapping, out_path):
                         "imageData": None,
                         "imageHeight": mask.shape[0], 
                         "imageWidth": mask.shape[1]}
-    for group_id, miny, minx, maxy, maxx in boxes:
+    for group_id, miny, minx, maxy, maxx in list(boxes):
         labelme_template['shapes'].append({"label": class_mapping[group_id],
                                            "points": [
                                                 [minx, miny],
