@@ -99,7 +99,63 @@ python ./train.py --model unet \
 ```
 
 ## Inference
-TODO: Finish inference script
+
+The inference script is able to predict segmentation masks for either a single image or a folder of images. The outputs are saved next to the inputs.
+
+The labelme annotations and connected component analysis (CCA) options use the same algorithm. CCA is performed on the image and bounding boxes are extracted for each region. The label of each region is based on the median class in the region (this sometimes results in a tie, in which we just pick the class with the higher number. This could be expanded to expect certain rules). Objects less than 200 pixels of area are filtered out. 
+
+Additionally, when writing the labelme json, we assume only lists and math formulas can fully overlap, all other objects are excluded if they overlap another by over 75%.
+
+### Help
+```
+python ./inference.py -h
+usage: inference.py [-h]
+                    (--input-image INPUT_IMAGE | --input-folder INPUT_FOLDER)
+                    [--saved-model SAVED_MODEL] [--model MODEL]
+                    [--img-size IMG_SIZE] [--saved-pkl SAVED_PKL]
+                    [--apply-cca] [--visualize] [--write-annotation]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --input-image INPUT_IMAGE
+                        Single image to segment.
+  --input-folder INPUT_FOLDER
+                        Folder of images to segment.
+  --saved-model SAVED_MODEL
+                        Directory or h5 file with a saved model.
+  --model MODEL         One of "unet", "fast_fcn", "deeplabv3plus", or
+                        "gated_scnn".
+  --img-size IMG_SIZE   Size of images. Should match the size trained on.
+  --saved-pkl SAVED_PKL
+                        The saved PKL file from the training step. It is used
+                        for the class mapping.
+  --apply-cca           Post process with conncected component analysis. Makes
+                        segmentations uniform, but might miss objects.
+  --visualize           If set, will open a matplotlib plot to see the
+                        segmentation visually.
+  --write-annotation    If set, will also write a json file with annotations
+                        in labelme format.
+```
+
+Example
+```
+python ./inference.py --input-image ./publaynet/train/PMC3388004_00003.jpg \
+--saved-model ./final_models/deeplabv3_plus_box_loss.h5 \
+--model deeplabv3plus \
+--img-size 512 \
+--saved-pkl ./saved_dad_paths.pkl \
+--apply-cca \
+--visualize \
+--write-annotation
+```
+The above example performs inference on a publaynet image. The png mask is saved next to the input image in ./publaynet/train/PMC3388004_00003_mask.png.
+
+Since --write-annotation is present, a labelme json file is also saved at ./publaynet/train/PMC3388004_00003.json containing the extracted bounding boxes for each object.
 
 ## Credits
-TODO: Insert code credits
+MetricsUtils: based on https://github.com/GeorgeSeif/Semantic-Segmentation-Suite/blob/master/utils/utils.py
+DataLoaderUtils: based on https://github.com/dhassault/tf-semantic-example/blob/master/01_semantic_segmentation_basic.ipynb
+DeepLabV3Plus Model Definition: based on https://github.com/srihari-humbarwadi/DeepLabV3_Plus-Tensorflow2.0
+Gated-SCNN Training and Dataset Loading: based on https://github.com/ben-davidson-6/Gated-SCNN
+FastFCN: translated from pytorch to tensorflow from https://github.com/wuhuikai/FastFCN
+PubLayNet Mask Generation: based on https://github.com/Lambert-Shirzad/PubLayNet_tfrecords
