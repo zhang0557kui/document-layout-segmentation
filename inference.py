@@ -13,7 +13,7 @@ from PIL import Image
 from skimage import measure
 from train import create_mask
 
-ALLOW_OVERLAP = {"list", "math_formula"}
+ALLOW_OVERLAP = {"list", "math_formula", "core_text"}
 
 def filter_boxes(boxes, class_mapping, tol=0.5):
     keep_box = {x: True for x in range(len(boxes))}
@@ -108,7 +108,7 @@ def cca(pred_mask, class_mapping, min_area=200, return_boxes=False):
 def write_labelme_json(mask, class_mapping, out_path):
     boxes = cca(mask, class_mapping, return_boxes=True)
     boxes = scale_boxes(boxes, Image.open(out_path.replace("json", "jpg")).size, mask.shape[0])
-    boxes = filter_boxes(boxes, class_mapping)
+    #boxes = filter_boxes(boxes, class_mapping)
     labelme_template = {"version": "4.2.10",
                         "flags": {},
                         "shapes": [],
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Load model
-    model = tf.keras.models.load_model(args.saved_model, compile=False)
+    model = tf.keras.models.load_model(args.saved_model, compile=False, custom_objects={'tf': tf})
     
 
     # Figure out our mode (single or multi)
